@@ -19,4 +19,8 @@ class BaseStore(ABC):
     def mark_failed(self, key: str, fingerprint: str, result_error: str) -> bool:
         raise NotImplementedError
 
+    @abstractmethod
+    def delete(self, key: str) -> bool:
+        raise NotImplementedError
+
     
