@@ -2,7 +2,7 @@ from typing import Callable
 from abc import ABC, abstractmethod
 from idempy.models import IdempotencyKey, Status
 
-class Base(ABC): 
+class BaseStore(ABC): 
     @abstractmethod
     def get(self, key: str, IdempotencyKey: IdempotencyKey) -> None:
         self.idempotency_key = IdempotencyKey
