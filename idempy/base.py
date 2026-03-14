@@ -19,6 +19,4 @@ class BaseStore(ABC):
     def mark_failed(self, key: str, fingerprint: str, result_error: str) -> bool:
         raise NotImplementedError
 
-    @abstractmethod
-    def mark_pending(self, key: str, fingerprint: str) -> bool:
-        raise NotImplementedError
+    
