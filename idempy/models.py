@@ -23,6 +23,7 @@ class Request:
     idempotency_key: str
     fingerprint: str
     method: str
+    path: str
     url: str
     headers: dict[str, str]
     body: bytes
