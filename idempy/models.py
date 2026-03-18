@@ -31,3 +31,45 @@ class Request:
     path_params: dict[str, str]
     cookies: dict[str, str]
     json: dict[str, Any]
+
+
+@dataclass
+class Process: 
+    status: Status
+    idempotency_key: IdempotencyKey
+    request: Request
+    result: Any
+    error: Exception | None
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass
+class Replay:
+    status: Status
+    idempotency_key: IdempotencyKey
+    request: Request
+    result: Any
+    error: Exception | None
+    created_at: datetime
+    updated_at: datetime
+
+@dataclass
+class InProgress:
+    status: Status
+    idempotency_key: IdempotencyKey
+    request: Request
+    result: Any
+    error: Exception | None
+    created_at: datetime
+    updated_at: datetime
+
+@dataclass
+class Conflict:
+    status: Status
+    idempotency_key: IdempotencyKey
+    request: Request
+  
+    
+
+    
