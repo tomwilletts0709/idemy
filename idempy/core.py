@@ -3,6 +3,7 @@ import sys
 import os
 from datetime import datetime
 from idempy.models import IdempotencyKey
+from idempy.memory import MemoryStore
 
 
 
@@ -10,12 +11,28 @@ DEFAULT_SETTINGS = {
     'idempy_key_prefix': 'idempotency_key_',
     'IdempotencyKey': IdempotencyKey,
     'datetime_class': datetime,
+    'stores': {
+        'memory': MemoryStore(),
+    },
 }
 
-class IdempotencyManager: 
-    def __init__(self, setttings: dict = DEFAULT_SETTINGS) -> None:
-        self.settings = settings
-        self.idempotency_key_prefix = settings.get('idempy_key_prefix', 'idempotency_key_')
 
-    def generate_key(self, IdempotencyKey: IdempotencyKey) -> str:
-        return f"{self.idempotency_key_prefix}{IdempotencyKey.key}"
+class Core:
+    def __init__(self, settings: dict[str, Any] | None = None) -> None:
+        self.settings = DEFAULT_SETTINGS
+        self.stores = Stores(settings['stores'])
+           
+    def validate_request(self, idempotency_key: str) -> bool:
+        if idempotency_key is None:
+            return False
+        
+        if idempotency_key.strip(): 
+            return False
+        
+        return True
+        
+
+        
+        
+
+

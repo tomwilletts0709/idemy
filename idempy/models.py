@@ -17,3 +17,16 @@ class IdempotencyKey:
     result_data: bytes | None = None
     result_status: int | None = None
     result_error: str | None = None
+
+@dataclass
+class Request:
+    idempotency_key: str
+    fingerprint: str
+    method: str
+    url: str
+    headers: dict[str, str]
+    body: bytes
+    query_params: dict[str, str]
+    path_params: dict[str, str]
+    cookies: dict[str, str]
+    json: dict[str, Any]
