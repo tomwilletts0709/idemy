@@ -2,7 +2,7 @@ from typing import Any
 import sys
 import os
 from datetime import datetime
-from idempy.models import IdempotencyKey, Request
+from idempy.models import IdempotencyKey, Request, Process, Replay, InProgress, Conflict
 from idempy.memory import MemoryStore
 
 
@@ -39,10 +39,52 @@ class Core:
             return False 
         
         return True
-    
-    
+
+    def build_fingerprint(self, request: dict[str, Any]) -> str:
+        return hashlib.sha256(request['fingerprint'].encode()).hexdigest()
+        
+        if not request['fingerprint'].strip(): 
+            return False 
+        
+        return request['fingerprint']
+
+    def get_store(self, memory: MemoryStore) -> MemoryStore:
+        return memory
+
+    def begin(self, request: Request) -> None:
+        if not self.validate_request(request):
+            return BeginResult(action=BeginAction.INVALID_REQUEST, message='Invalid request')
+
+        idempotency_key = self.build_idempotency_key(request)
+        fingerprint = self.build_fingerprint(request)
+        store = self.get_store(request.store)
+
+        if store.get(idempotency_key) is not None:
+            return BeginResult(action=BeginAction.CONFLICT, message='Conflict')
+
+        store.create_in_progress(idempotency_key, fingerprint)
+        return BeginResult(action=BeginAction.SUCCESS, message='Success')
+
+
+
+    def complete(self, request: Request) -> None:
+        pass 
+
+    def fail(self, request: Request) -> None:
+        pass 
+
+    def replay(self, request: Request) -> None:
+        pass
+
+    def get_status(self, request: Request) -> Status:
+        pass
 
         
+        
+
+
+        
+
         
 
 
