@@ -7,6 +7,12 @@ class Status(str, Enum):
     SUCCESS = 'success'
     FAILED = 'failed'
 
+class State(str, Enum):
+    CONFLICT = 'conflict'
+    IN_PROGRESS = 'in_progress'
+    REPLAY = 'replay'
+    PROCESS = 'process'
+
 @dataclass
 class IdempotencyKey:
     key: str
@@ -34,41 +40,20 @@ class Request:
 
 
 @dataclass
-class Process: 
+class IdempotencyRecord:
     status: Status
     idempotency_key: IdempotencyKey
     request: Request
-    result: Any
-    error: Exception | None
-    created_at: datetime
-    updated_at: datetime
-
-
-@dataclass
-class Replay:
-    status: Status
-    idempotency_key: IdempotencyKey
-    request: Request
-    result: Any
-    error: Exception | None
-    created_at: datetime
-    updated_at: datetime
+    result: Any = None
+    error: Exception | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 @dataclass
-class InProgress:
-    status: Status
-    idempotency_key: IdempotencyKey
-    request: Request
-    result: Any
-    error: Exception | None
-    created_at: datetime
-    updated_at: datetime
-
-@dataclass
-class Conflict:
-    status: Status
-    idempotency_key: IdempotencyKey
-    request: Request
+class BeginResult:
+    action: BeginAction
+    record: IdempotencyRecord | None = None
+    message: str | None = None
   
     
 
