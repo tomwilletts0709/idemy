@@ -1,9 +1,14 @@
-from idempy.core import Core
-from pytest import fixture
+import pytest
 
-@fixture
+from idempy.core import Core
+from idempy.models import BeginAction
+
+
+@pytest.fixture
 def core():
     return Core()
+
+
 def test_validate_request(core):
     request = {
         'idempotency_key': '1234567890',
@@ -35,15 +40,20 @@ def test_missing_idempotency_key(core):
 
 def test_begin(core):
     request = {
-        'idempotency_key': '1234567890',
-        'fingerprint': '1234567890',
+        "idempotency_key": "1234567890",
+        "fingerprint": "1234567890",
     }
-    assert core.begin(request) is True
+    result = core.begin(request)
+    assert result.action == BeginAction.SUCCESS
+    assert result.record is not None
 
 
-def test_begin_failure(core):
+def test_begin_replay_same_request(core):
     request = {
-        'idempotency_key': '1234567890',
-        'fingerprint': '1234567890',
+        "idempotency_key": "replay-key",
+        "fingerprint": "same-fingerprint",
     }
-    assert core.begin(request) is False
+    first = core.begin(request)
+    assert first.action == BeginAction.SUCCESS
+    second = core.begin(request)
+    assert second.action == BeginAction.REPLAY

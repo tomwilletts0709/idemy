@@ -1,8 +1,10 @@
-from typing import Any, Callable
+from typing import Any, Callable, Generic, TypeVar
 
-type Validator = Callable[[str, Any], None]
+Validator = Callable[[str, Any], None]
+T = TypeVar("T")
 
-def non_empty(field: str, value: Any) -> None: 
+
+def non_empty(field: str, value: Any) -> None:
     if not isinstance(value, str) or not value.strip(): 
         raise ValueError(f'{field} cannot be empty')
 
@@ -12,8 +14,12 @@ def min_value(n:int) -> Validator:
             raise ValueError(f'{field} must be greater than {n}')
     return _v
 
-class ValidatedField[T]:
-    def __init__(self, cast: Callable[[Any], T], value: T, validators: tuple[Validator, ...]) -> None:
+class ValidatedField(Generic[T]):
+    def __init__(
+        self,
+        cast: Callable[[Any], T],
+        validators: tuple[Validator, ...] = (),
+    ) -> None:
         self.cast    = cast
         self.validators = validators
         self.name: str = ""

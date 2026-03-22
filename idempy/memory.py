@@ -1,51 +1,99 @@
-import time
-from typing import Dict, Any, Optional, Callable
+from datetime import datetime
+from threading import Lock
+from typing import Optional
+
 from idempy.base import BaseStore
 from idempy.models import IdempotencyKey, Status
-from threading import Lock
+
 
 class MemoryStore(BaseStore):
-    """ in memory store for idempotency keys """
+    """In-memory store for idempotency keys."""
 
-    expiry_seconds: int = 60 * 60 * 24 * 30 # 30 days
-    
+    expiry_seconds: int = 60 * 60 * 24 * 30  # 30 days
 
-    def __init__(self, clear: bool = False) -> None: 
-        self.store: Dict[str, IdempotencyKey] = {}
-        self.lock = Lock()
+    def __init__(self, clear: bool = False) -> None:
+        self.store: dict[str, IdempotencyKey] = {}
+        self._lock = Lock()
         if clear:
-            self.clear_idempotency_keys()
+            self.store.clear()
+
+    def _is_expired(self, record: IdempotencyKey) -> bool:
+        if record.updated_at is None:
+            return False
+        elapsed = (datetime.now() - record.updated_at).total_seconds()
+        return elapsed > self.expiry_seconds
 
     def get(self, key: str) -> Optional[IdempotencyKey]:
-        record = self.store.get(key)
-        if record is None: 
-            return None
-        
-        if self.is_expired(record):
-            self.delete_idempotency_key(key)
-            return None
-        
-        return record
+        with self._lock:
+            record = self.store.get(key)
+            if record is None:
+                return None
+            if self._is_expired(record):
+                del self.store[key]
+                return None
+            return record
 
-    def store_response_data(self, key: str, result_data: bytes, result_status: int) -> None:
-        self.response_store[key] = {
-            'result_data': result_data,
-            'result_status': result_status,
-        }
+    def create_in_progress(self, key: str, fingerprint: str) -> bool:
+        now = datetime.now()
+        record = IdempotencyKey(
+            key=key,
+            fingerprint=fingerprint,
+            status=Status.PENDING,
+            created_at=now,
+            updated_at=now,
+        )
+        with self._lock:
+            if key in self.store:
+                return False
+            self.store[key] = record
+        return True
 
-    def get_stored_response(self, key: str) -> Optional[bytes]:
-        if key not in self.store:
-            return None
-        return self.store[key].result_data
+    def mark_completed(
+        self,
+        key: str,
+        fingerprint: str,
+        result_data: bytes,
+        result_status: int,
+    ) -> bool:
+        with self._lock:
+            record = self.store.get(key)
+            if record is None or record.fingerprint != fingerprint:
+                return False
+            now = datetime.now()
+            updated = IdempotencyKey(
+                key=key,
+                fingerprint=fingerprint,
+                status=Status.SUCCESS,
+                created_at=record.created_at,
+                updated_at=now,
+                result_data=result_data,
+                result_status=result_status,
+            )
+            self.store[key] = updated
+        return True
 
-    def store_idempotency_key(self, key: str, idempotency_key: IdempotencyKey) -> None:
-        self.store[key] = idempotency_key
-    
-    def delete_idempotency_key(self, key: str) -> None:
-        if key in self.store:
-            del self.store[key]
+    def mark_failed(self, key: str, fingerprint: str, result_error: str) -> bool:
+        with self._lock:
+            record = self.store.get(key)
+            if record is None or record.fingerprint != fingerprint:
+                return False
+            now = datetime.now()
+            updated = IdempotencyKey(
+                key=key,
+                fingerprint=fingerprint,
+                status=Status.FAILED,
+                created_at=record.created_at,
+                updated_at=now,
+                result_error=result_error,
+            )
+            self.store[key] = updated
+        return True
 
-    def clear_idempotency_keys(self) -> None:
-        self.store.clear()
+    def delete(self, key: str) -> bool:
+        with self._lock:
+            if key in self.store:
+                del self.store[key]
+                return True
+            return False
 
    

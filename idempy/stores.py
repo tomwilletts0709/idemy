@@ -1,20 +1,21 @@
-from typing TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
 from idempy.base import BaseStore
 
-if TYPE_CHECKING:
-    from idempy.core import Core
 
-class Stores: 
+class Stores:
     def __init__(self, stores: dict[str, BaseStore], default: str | None = None) -> None:
-        self.stores = stores 
-        self.default = default
+        self._stores = stores
+        self._default = default or ("memory" if "memory" in stores else next(iter(stores), None))
 
-    def get(self, name: str) -> BaseStore:
-    key = name or self.default
-    if key is None: 
-        raise ValueError("No default store configured")
-    store = self.stores.get(key)
-    if store is None:
-        raise ValueError(f"Store {key} not found")
-    return store
+    def get(self, name: str | None = None) -> BaseStore:
+        key = name or self._default
+        if key is None:
+            raise ValueError("No store configured and no default available")
+        store = self._stores.get(key)
+        if store is None:
+            raise ValueError(
+                f"Store '{key}' not found. Available: {list(self._stores)}"
+            )
+        return store
 

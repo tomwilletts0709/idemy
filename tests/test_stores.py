@@ -1,17 +1,27 @@
-from pytest import fixture
-from idempy.stores import Stores
+import pytest
 from idempy.memory import MemoryStore
+from idempy.stores import Stores
 
-@fixture
+
+@pytest.fixture
 def stores():
-    return Stores(stores={'memory': MemoryStore()})
+    return Stores(stores={"memory": MemoryStore()}, default="memory")
+
 
 def test_get_store(stores):
-    assert stores.get('memory') is not None
+    assert stores.get("memory") is not None
+
 
 def test_get_store_default(stores):
-    assert stores.get('default') is not None
+    assert stores.get() is not None
+    assert stores.get("memory") is not None
+
 
 def test_get_store_not_found(stores):
-    with pytest.raises(ValueError, match="Store default not found"):
-        stores.get('not_found')
+    with pytest.raises(ValueError, match="Store 'not_found' not found"):
+        stores.get("not_found")
+
+
+def test_get_store_no_default():
+    stores = Stores(stores={"memory": MemoryStore()})
+    assert stores.get() is not None

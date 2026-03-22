@@ -1,6 +1,7 @@
 from datetime import datetime
-from dataclasses import dataclass 
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 class BeginAction(str, Enum):
     INVALID_REQUEST = "invalid_request"
@@ -12,16 +13,44 @@ class BeginAction(str, Enum):
     FAILED = "failed"
     NOT_FOUND = "not_found"
 
-class Status(str, Enum): 
+class Status(str, Enum):
     PENDING = 'pending'
     SUCCESS = 'success'
     FAILED = 'failed'
+    NOT_FOUND = 'not_found'
 
 class State(str, Enum):
     CONFLICT = 'conflict'
     IN_PROGRESS = 'in_progress'
     REPLAY = 'replay'
     PROCESS = 'process'
+
+
+class CompleteAction(str, Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
+class FailAction(str, Enum):
+    FAILED = "failed"
+
+
+class ReplayAction(str, Enum):
+    INVALID_REQUEST = "invalid_request"
+    NOT_FOUND = "not_found"
+    CONFLICT = "conflict"
+    SUCCESS = "success"
+
+
+class GetStatusAction(str, Enum):
+    NOT_FOUND = "not_found"
+    SUCCESS = "success"
+
+
+class DeleteAction(str, Enum):
+    SUCCESS = "success"
+    NOT_FOUND = "not_found"
+
 
 @dataclass(frozen=True, slots=True)
 class IdempotencyKey:
@@ -47,6 +76,7 @@ class Request:
     path_params: dict[str, str]
     cookies: dict[str, str]
     json: dict[str, Any]
+    store: str = "memory"
 
 
 @dataclass(slots=True)
