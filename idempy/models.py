@@ -3,9 +3,13 @@ from dataclasses import dataclass
 from enum import Enum
 
 class BeginAction(str, Enum):
-    INVALID_REQUEST = 'invalid_request'
-    CONFLICT = 'conflict'
-    SUCCESS = 'success'
+    INVALID_REQUEST = "invalid_request"
+    PROCESS = "process"
+    REPLAY = "replay"
+    IN_PROGRESS = "in_progress"
+    CONFLICT = "conflict"
+    SUCCESS = "success"
+    FAILED = "failed"
 
 class Status(str, Enum): 
     PENDING = 'pending'
