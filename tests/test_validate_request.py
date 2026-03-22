@@ -31,3 +31,19 @@ def test_missing_idempotency_key(core):
         'fingerprint': '1234567890',
     }
     assert core.validate_request(request) is False
+
+
+def test_begin(core):
+    request = {
+        'idempotency_key': '1234567890',
+        'fingerprint': '1234567890',
+    }
+    assert core.begin(request) is True
+
+
+def test_begin_failure(core):
+    request = {
+        'idempotency_key': '1234567890',
+        'fingerprint': '1234567890',
+    }
+    assert core.begin(request) is False
