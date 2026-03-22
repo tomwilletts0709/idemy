@@ -63,7 +63,33 @@ class BeginResult:
     action: BeginAction
     record: IdempotencyRecord | None = None
     message: str | None = None
-  
-    
 
-    
+@dataclass(frozen=True, slots=True)
+class CompleteResult:
+    action: CompleteAction
+    record: IdempotencyRecord | None = None
+    message: str | None = None
+
+@dataclass(frozen=True, slots=True)
+class FailResult:
+    action: FailAction
+    record: IdempotencyRecord | None = None
+    message: str | None = None
+
+@dataclass(frozen=True, slots=True)
+class ReplayResult:
+    action: ReplayAction
+    record: IdempotencyRecord | None = None
+    message: str | None = None
+  
+@dataclass(frozen=True, slots=True)
+class GetStatusResult:
+    action: GetStatusAction
+    record: IdempotencyRecord | None = None
+    message: str | None = None
+
+@dataclass(frozen=True, slots=True)
+class DeleteResult:
+    action: DeleteAction
+    record: IdempotencyRecord | None = None
+    message: str | None = None
