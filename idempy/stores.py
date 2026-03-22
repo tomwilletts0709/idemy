@@ -1,4 +1,5 @@
 from typing TYPE_CHECKING, Any
+from idempy.base import BaseStore
 
 if TYPE_CHECKING:
     from idempy.core import Core

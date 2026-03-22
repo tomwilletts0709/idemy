@@ -19,6 +19,7 @@ DEFAULT_SETTINGS = {
     'stores': {
         'memory': MemoryStore(),
     },
+    'default_store': 'memory',
 }
 
 
