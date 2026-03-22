@@ -12,7 +12,7 @@ def min_value(n:int) -> Validator:
             raise ValueError(f'{field} must be greater than {n}')
     return _v
 
-class VaidatedField[T]:
+class ValidatedField[T]:
     def __init__(self, cast: Callable[[Any], T], value: T, validators: tuple[Validator, ...]) -> None:
         self.cast    = cast
         self.validators = validators
