@@ -84,31 +84,46 @@ class Core:
         return fail_result.record.status
 
     def replay(self, request: Request) -> ReplayResult:
-        if not self.validate_request(request):
-            return ReplayResult(action=ReplayAction.INVALID_REQUEST, message='Invalid request')
-        
-        idempotency_key = self.build_idempotency_key(request)
-        fingerprint = self.build_fingerprint(request)
-        store = self.get_store(request.store)
+    if not self.validate_request(request):
+        return ReplayResult(
+            action=ReplayAction.INVALID_REQUEST,
+            message="Invalid request",
+        )
 
-        if store.get(idempotency_key) is None:
-            return ReplayResult(action=ReplayAction.NOT_FOUND, message='Replay not found')
-    
-        return ReplayResult(action=ReplayAction.SUCCESS, message='Replay found', record=store.get(idempotency_key))
-        
+    idempotency_key = self.build_idempotency_key(request)
+    fingerprint = self.build_fingerprint(request)
+    store = self.get_store(request.store)
+
+    record = store.get(idempotency_key)
+    if record is None:
+        return ReplayResult(
+            action=ReplayAction.NOT_FOUND,
+            message="Replay not found",
+        )
+
+    if record.fingerprint != fingerprint:
+        return ReplayResult(
+            action=ReplayAction.CONFLICT,
+            message="Fingerprint conflict",
+        )
+
+    return ReplayResult(
+        action=ReplayAction.SUCCESS,
+        record=record,
+        message="Replay found",
+    )
+
 
     def get_status(self, request: Request) -> Status:
-        
         idempotency_key = self.build_idempotency_key(request)
-        fingerprint = self.build_fingerprint(request)
         store = self.get_store(request.store)
 
-        if store.get(idempotency_key) is None:
+        record = store.get(idempotency_key)
+        if record is None:
             return Status.NOT_FOUND
-        
-        return store.get(idempotency_key).status
 
-        
+        return record.status     
+            
         
 
 
