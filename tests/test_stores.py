@@ -1,7 +1,6 @@
-from pytest import fixture, pytest
+from pytest import fixture
 from idempy.stores import Stores
 from idempy.memory import MemoryStore
-from idempy.base import BaseStore
 
 @fixture
 def stores():
