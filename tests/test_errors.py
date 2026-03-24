@@ -1,0 +1,17 @@
+import pytest
+from idempy.errors import IdempotencyKeyNotFoundError, IdempotencyKeyAlreadyExistsError, IdempotencyKeyInvalidError
+
+def test_idempotency_key_not_found_error():
+    err = IdempotencyKeyNotFoundError("Idempotency key not found")
+    assert str(err) == "Idempotency key not found"
+    assert err.idempotency_error == "Idempotency key not found"
+
+def test_idempotency_key_already_exists_error():
+    err = IdempotencyKeyAlreadyExistsError("Idempotency key already exists")
+    assert str(err) == "Idempotency key already exists"
+    assert err.idempotency_error == "Idempotency key already exists"
+
+def test_idempotency_key_invalid_error():
+    err = IdempotencyKeyInvalidError("Idempotency key invalid")
+    assert str(err) == "Idempotency key invalid"
+    assert err.idempotency_error == "Idempotency key invalid"
