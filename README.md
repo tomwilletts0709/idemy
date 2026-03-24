@@ -19,26 +19,92 @@ Without idempotency, this can lead to duplicated side effects such as:
 - creating duplicate records
 - processing the same event multiple times
 
-`idempy` aims to solve that by tracking idempotency keys, request fingerprints, execution state, and stored results.
+`idempy` tracks **idempotency keys** and **request fingerprints**, stores execution state and results, and lets you **replay** a prior outcome when the same logical request arrives again.
 
-## Current goal
+## What works today
 
-The current version is focused on a **pure Python core** first.
+The **pure Python core** provides:
 
-The aim is to build a small, clear library that can:
+- **`Core`** — `begin`, `complete`, `fail`, `replay`, and `get_status` over a pluggable store
+- **`Stores`** — named backends (e.g. `memory`) with a default
+- **`MemoryStore`** — in-process implementation of `BaseStore` with TTL-style expiry
+- **`Request`** / **`IdempotencyRecord`** — typed models and result enums (`BeginAction`, `ReplayResult`, `Status`, …)
+- **`validator`** — optional `ValidatedField` helpers for boundary validation
 
-- store idempotency records
-- detect duplicate requests
-- reject conflicting reuse of a key
-- track in-progress operations
-- replay completed results safely
+See [docs/lifecycle.md](docs/lifecycle.md) for the full flow and roadmap.
+
+## Requirements
+
+- Python **3.11+**
+
+## Installation
+
+From a checkout of this repository:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Or with [uv](https://github.com/astral-sh/uv):
+
+```bash
+uv sync --extra dev
+```
+
+Install in editable mode so imports like `import idempy` work when running tests and local scripts.
+
+## Quick usage
+
+```python
+from idempy import Core, BeginAction
+
+core = Core()
+
+req = {
+    "idempotency_key": "pay-001",
+    "fingerprint": "canonical-body-or-hash-from-client",
+}
+
+out = core.begin(req)
+if out.action == BeginAction.INVALID_REQUEST:
+    ...
+elif out.action == BeginAction.REPLAY:
+    # Same key + same fingerprint — use stored result, do not charge again
+    ...
+elif out.action == BeginAction.CONFLICT:
+    # Same key, different fingerprint — reject
+    ...
+elif out.action == BeginAction.SUCCESS and out.record:
+    # First time — run your side effect, then persist outcome
+    core.complete(out.record, result_data=b"{}", result_status=200)
+```
+
+For production you will typically build a full **`Request`** (method, path, headers, body, etc.) and plug in a **durable store** (Redis, SQL) instead of the default in-memory backend.
+
+## Development
+
+Run tests from the repository root (after editable install):
+
+```bash
+pytest
+```
 
 ## Project structure
 
 ```text
-idempy/
-├── models.py
-├── errors.py
-├── base.py
-├── core.py
-└── memory.py
+.
+├── pyproject.toml      # packaging + dev deps (pytest)
+├── uv.lock             # lockfile when using uv
+├── docs/
+│   └── lifecycle.md    # lifecycle + roadmap
+├── idempy/
+│   ├── __init__.py
+│   ├── base.py         # BaseStore ABC
+│   ├── core.py         # Core orchestration
+│   ├── errors.py
+│   ├── memory.py       # MemoryStore
+│   ├── models.py
+│   ├── stores.py       # Stores registry
+│   └── validator.py
+└── tests/
+```
