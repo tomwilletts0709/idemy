@@ -98,9 +98,19 @@ core = Core(settings={
 | Store | Use case |
 |---|---|
 | `MemoryStore` | Single-process apps, testing, local dev |
-| Redis / SQL | Multi-process, multi-server (not yet built-in — implement `BaseStore`) |
+| `RedisStore` | Multi-process, multi-server deployments |
 
-`MemoryStore` is thread-safe and applies a 30-day TTL via lazy expiry. It does not survive process restarts.
+`MemoryStore` is thread-safe with 30-day lazy TTL expiry. It does not survive process restarts.
+
+`RedisStore` uses Redis hashes with native TTL and `SET NX` for atomic creation across multiple workers. Requires `pip install idempy[redis]`.
+
+```python
+from redis import Redis
+from idempy import Core, RedisStore
+
+store = RedisStore(Redis.from_url("redis://localhost:6379/0"))
+core = Core(settings={"stores": {"redis": store}, "default_store": "redis"})
+```
 
 ## Fingerprints
 
@@ -124,19 +134,100 @@ class Config:
     retries = ValidatedField(int, (min_value(0),))
 ```
 
+## Framework middleware
+
+Drop-in middleware adapters gate every qualifying request through `Core.begin()` automatically — no per-handler code needed. Each adapter auto-computes the fingerprint from the HTTP method, path, and body.
+
+### Flask
+
+```python
+from idempy.middleware.flask import IdemMiddleware
+
+app = Flask(__name__)
+IdemMiddleware(app)                          # direct init
+# or: middleware.init_app(app)               # application-factory pattern
+```
+
+Requires `pip install idempy[flask]`.
+
+### FastAPI
+
+```python
+from idempy.middleware.fastapi import IdemMiddleware
+
+app = FastAPI()
+app.add_middleware(IdemMiddleware)
+```
+
+Requires `pip install idempy[fastapi]`.
+
+### Django
+
+```python
+# settings.py
+MIDDLEWARE = [
+    "idempy.middleware.django.IdemMiddleware",
+    ...
+]
+```
+
+Optionally configure via `settings.IDEMPY`:
+
+```python
+IDEMPY = {
+    "header_name": "Idempotency-Key",           # default
+    "safe_methods": {"GET", "HEAD", "OPTIONS"},  # default
+}
+```
+
+Requires `pip install idempy[django]`.
+
+### Custom `Core` for all adapters
+
+Pass a `core` argument to use a non-default store:
+
+```python
+from idempy import Core, RedisStore
+from redis import Redis
+
+core = Core(settings={"stores": {"redis": RedisStore(Redis.from_url(...))}, "default_store": "redis"})
+
+# Flask
+IdemMiddleware(app, core=core)
+
+# FastAPI
+app.add_middleware(IdemMiddleware, core=core)
+
+# Django — set before the server starts
+from idempy.middleware.django import IdemMiddleware as DjangoMiddleware
+DjangoMiddleware.core = core
+```
+
 ## Requirements
 
-Python **3.11+**, no runtime dependencies.
+Python **3.11+**, no runtime dependencies for the core library.
+
+Optional extras:
+
+| Extra | Installs |
+|---|---|
+| `pip install idempy[redis]` | `redis` |
+| `pip install idempy[flask]` | `flask` |
+| `pip install idempy[fastapi]` | `fastapi`, `httpx` |
+| `pip install idempy[django]` | `django` |
+| `pip install idempy[all]` | all of the above |
 
 ## Installation
 
 ```bash
-pip install -e ".[dev]"
+pip install idempy
 ```
 
-Or with [uv](https://github.com/astral-sh/uv):
+For development:
 
 ```bash
+pip install -e ".[dev]"
+# or
 uv sync --extra dev
 ```
 
@@ -151,18 +242,21 @@ pytest tests/integration/           # integration tests only
 
 ```
 idempy/
-├── base.py         BaseStore ABC — implement this for custom backends
-├── core.py         Core orchestration (begin / complete / fail / replay / get_status)
-├── errors.py       Exception hierarchy
-├── memory.py       MemoryStore — thread-safe in-process backend
-├── models.py       Dataclasses and enums (Request, IdempotencyRecord, Status, …)
-├── stores.py       Stores registry
-└── validator.py    ValidatedField descriptor + built-in validators
+├── core.py              Core orchestration (begin / complete / fail / replay / get_status)
+├── base.py              BaseStore ABC — implement this for custom backends
+├── memory.py            MemoryStore — thread-safe in-process backend
+├── redis.py             RedisStore — distributed backend
+├── stores.py            Stores registry
+├── models.py            Dataclasses and enums (Request, IdempotencyRecord, Status, …)
+├── errors.py            Exception hierarchy
+├── validator.py         ValidatedField descriptor + built-in validators
+├── logging.py           NullHandler registration + configure_logging() helper
+└── middleware/
+    ├── flask.py         Flask extension
+    ├── fastapi.py       FastAPI / Starlette middleware
+    └── django.py        Django middleware
 
 tests/
-├── integration/    End-to-end lifecycle tests
-└── ...             Unit tests per module
-
-docs/
-└── lifecycle.md    Architecture, flow, and roadmap
+├── integration/         End-to-end lifecycle tests (MemoryStore + RedisStore)
+└── ...                  Unit tests per module
 ```
